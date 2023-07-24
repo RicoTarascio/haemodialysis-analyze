@@ -30,7 +30,7 @@ class Analyze:
         self.original_folder_path = original_folder_path
         self.patients_files = valid_files
 
-        print(self.analyze_patient(self.patients_files[0]))
+        self.analyze_patient(self.patients_files[0])
 
     @staticmethod
     def read_patient_data(patient_file: os.DirEntry, sheet_name: str | None):
@@ -38,40 +38,38 @@ class Analyze:
         return df.to_numpy().tolist()
     
     @staticmethod
-    def get_month_dates(file: pd.ExcelFile, month):
-        dates = {}
+    def get_month_dates(dates_raw):
+        dates = []
         pre = 0
-        for x in Analyze.read_patient_data(file, month)[1]:
+        for x in dates_raw:
             x = str(x)
             if x.find("-") > -1:
                 if int(x.split("-")[0]) > pre:
-                    dates[x.split("-")[0]] = 0
+                    dates.append(x.split("-")[0])
                     pre = int(x.split("-")[0])
                 else: break
         return dates
     
     def analyze_patient(self, patient_file: os.DirEntry):
-        
-
-        months = {}
-
         f = pd.ExcelFile(patient_file)
 
         for month in f.sheet_names:
             if month not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
                 continue
-            dates = Analyze.get_month_dates(f, month)
+            raw_data = Analyze.read_patient_data(f, month)
+            dates = Analyze.get_month_dates(raw_data[1])
 
-            
-            
-            
-        return {m: self.parameters for m in months}
+            for row in raw_data: 
+                if row[0] in self.parameters.keys():
+                    # check parameter with values
+                    print(row[0])
+        return ""
 
     @staticmethod
     def read_parameters(parameters_file_path: str): 
         df = pd.read_excel(parameters_file_path)
         full_read = df.to_numpy()
-        parameters = [x.tolist() for x in full_read if not pd.isna(x[0]) and not pd.isna(x[1]) and not pd.isna(x[2])]
+        parameters = {x[0]: [x[1], x[2]] for x in full_read if not pd.isna(x[0]) and not pd.isna(x[1]) and not pd.isna(x[2])}
 
         return parameters
 
