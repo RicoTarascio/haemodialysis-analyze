@@ -32,10 +32,15 @@ class Analyze:
 
         self.analyze_patient(self.patients_files[0])
 
+
     @staticmethod
-    def read_patient_data(patient_file: os.DirEntry, sheet_name: str | None):
-        df = pd.read_excel(patient_file, sheet_name=sheet_name)
-        return df.to_numpy().tolist()
+    def read_patient_data(patient_file: os.DirEntry, sheet_name: str | None, params_to_filter: dict | None):
+        df = pd.read_excel(patient_file, sheet_name=sheet_name, index_col=0, header=2)
+        df.drop_duplicates(inplace=True)
+        df = df.filter(axis='index', items=params_to_filter.keys())
+        df = df.filter(regex='([1-9])+-\w{3}$', axis='columns')
+        print(df)
+        return df
     
     @staticmethod
     def get_month_dates(dates_raw):
@@ -56,13 +61,15 @@ class Analyze:
         for month in f.sheet_names:
             if month not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
                 continue
-            raw_data = Analyze.read_patient_data(f, month)
-            dates = Analyze.get_month_dates(raw_data[1])
+            raw_data = Analyze.read_patient_data(f, month, self.parameters)
+            # dates = Analyze.get_month_dates(raw_data[1])
 
-            for row in raw_data: 
-                if row[0] in self.parameters.keys():
-                    # check parameter with values
-                    print(row[0])
+            # for row in raw_data: 
+            #     if row[0] in self.parameters.keys():
+            #         # check parameter with values
+            #         for i, val in enumerate(row[1:len(dates)]):
+            #             print("Param:", row[0], "Date:", dates[i], month, " Val:", val)
+
         return ""
 
     @staticmethod
