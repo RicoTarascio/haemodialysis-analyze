@@ -39,7 +39,6 @@ class Analyze:
         df.drop_duplicates(inplace=True)
         df = df.filter(axis='index', items=params_to_filter.keys())
         df = df.filter(regex='([1-9])+-\w{3}$', axis='columns')
-        print(df)
         return df
     
     @staticmethod
@@ -57,19 +56,23 @@ class Analyze:
     
     def analyze_patient(self, patient_file: os.DirEntry):
         f = pd.ExcelFile(patient_file)
-
+        print("\n\n")
         for month in f.sheet_names:
             if month not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
-                continue
-            raw_data = Analyze.read_patient_data(f, month, self.parameters)
-            # dates = Analyze.get_month_dates(raw_data[1])
+                    continue
+            print("MONTH: " + month)
+            patient_data = Analyze.read_patient_data(f, month, self.parameters)
+            dates = patient_data.columns
+            params = patient_data.index
 
-            # for row in raw_data: 
-            #     if row[0] in self.parameters.keys():
-            #         # check parameter with values
-            #         for i, val in enumerate(row[1:len(dates)]):
-            #             print("Param:", row[0], "Date:", dates[i], month, " Val:", val)
+            raw_data = patient_data.to_numpy()
 
+            for p_i, p_row in enumerate(raw_data):
+                print(params[p_i])
+                for r_i, r in enumerate(p_row):
+                    print(dates[r_i], r)
+                print("\n\n")
+            print("\n\n\n")
         return ""
 
     @staticmethod
