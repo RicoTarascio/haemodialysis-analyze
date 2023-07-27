@@ -4,9 +4,9 @@ import os, sys
 ROOT_DIR = os.path.abspath(os.curdir)
 DEFAULT_ORIG_FOLDER_PATH = os.path.join(ROOT_DIR, "original")
 class Analyze:
-    original_folder_path: str
-    patients_files: list[os.DirEntry]
-    parameters = []
+    original_folder_path: str = DEFAULT_ORIG_FOLDER_PATH
+    patients_files: list[pd.ExcelFile] = []
+    parameters = dict()
     
     def __init__(self, original_folder_path: str, parameters_file_path: str) -> None:
         if not os.path.exists(original_folder_path):
@@ -28,52 +28,37 @@ class Analyze:
         valid_files = list(filter(Analyze.is_file_valid, original_dir))
 
         self.original_folder_path = original_folder_path
-        self.patients_files = valid_files
 
-        self.analyze_patient(self.patients_files[0])
+        for f in valid_files:
+            self.patients_files.append(Analyze.to_excel(f))
 
 
-    @staticmethod
-    def read_patient_data(patient_file: os.DirEntry, sheet_name: str | None, params_to_filter: dict | None):
+    def read_patient_data(self, patient_file: pd.ExcelFile, sheet_name: str | None):
         df = pd.read_excel(patient_file, sheet_name=sheet_name, index_col=0, header=2)
         df.drop_duplicates(inplace=True)
-        df = df.filter(axis='index', items=params_to_filter.keys())
+        df = df.filter(axis='index', items=self.parameters.keys())
         df = df.filter(regex='([1-9])+-\w{3}$', axis='columns')
         return df
-    
-    @staticmethod
-    def get_month_dates(dates_raw):
-        dates = []
-        pre = 0
-        for x in dates_raw:
-            x = str(x)
-            if x.find("-") > -1:
-                if int(x.split("-")[0]) > pre:
-                    dates.append(x.split("-")[0])
-                    pre = int(x.split("-")[0])
-                else: break
-        return dates
-    
-    def analyze_patient(self, patient_file: os.DirEntry):
-        f = pd.ExcelFile(patient_file)
-        print("\n\n")
-        for month in f.sheet_names:
-            if month not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
-                    continue
-            print("MONTH: " + month)
-            patient_data = Analyze.read_patient_data(f, month, self.parameters)
-            dates = patient_data.columns
-            params = patient_data.index
 
-            raw_data = patient_data.to_numpy()
+    
+    def analyze_patient(self, patient_data: pd.DataFrame, month: str):
+        # for month in f.sheet_names:
+        #     if month not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
+        #             continue
+        #     print("MONTH: " + month)
+        #     patient_data = Analyze.read_patient_data(f, month, self.parameters)
+        dates = patient_data.columns
+        params = patient_data.index
 
-            for p_i, p_row in enumerate(raw_data):
-                print(params[p_i])
-                for r_i, r in enumerate(p_row):
-                    print(dates[r_i], r)
-                print("\n\n")
-            print("\n\n\n")
-        return ""
+        raw_data = patient_data.to_numpy()
+
+        for p_i, p_row in enumerate(raw_data):
+            for r_i, r in enumerate(p_row):
+                ranges = self.parameters[params[p_i]]
+                read_val = float(r)
+                if read_val < ranges[0] or read_val > ranges[1]:
+                    print(month, dates[r_i], params[p_i], read_val, "OUT OF RANGE", ranges)
+        return []
 
     @staticmethod
     def read_parameters(parameters_file_path: str): 
@@ -86,6 +71,10 @@ class Analyze:
     @staticmethod
     def get_dir(path: str):
         return list(os.scandir(path))
+    
+    @staticmethod 
+    def to_excel(file: os.DirEntry):
+        return pd.ExcelFile(file)
     
     @staticmethod
     def is_file_valid(file: os.DirEntry | str):
