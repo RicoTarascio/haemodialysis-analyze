@@ -3,6 +3,10 @@ import os, sys
 
 ROOT_DIR = os.path.abspath(os.curdir)
 DEFAULT_ORIG_FOLDER_PATH = os.path.join(ROOT_DIR, "original")
+
+#TODO:
+# [] Refactor Analyze to use Patient and utils
+
 class Analyze:
     original_folder_path: str = DEFAULT_ORIG_FOLDER_PATH
     patients_files: list[pd.ExcelFile] = []
