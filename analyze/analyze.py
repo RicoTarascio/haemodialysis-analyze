@@ -7,13 +7,12 @@ from .patient import Patient
 
 
 class Analyze:
-    
-    # @Returns - values for each month that are out of parameters range
     @staticmethod
     def analyze(patient: Patient, parameters: dict):
         report = PatientReport(patient, parameters)
         
         for month, df in patient.data.items():
+            df = df.drop_duplicates()
             df = df.filter(axis='index', items=parameters.keys())
             dates = df.columns
             params = df.index
