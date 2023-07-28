@@ -57,7 +57,6 @@ class Utils:
                     continue
                 df = pd.read_excel(file, sheet_name=m, index_col=0, header=2)
                 df.drop_duplicates(inplace=True)
-                #df = df.filter(axis='index', items=params.keys())
                 df = df.filter(regex='([1-9])+-\w{3}$', axis='columns')
                 data[m] = df
             return data

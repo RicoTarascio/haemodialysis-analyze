@@ -1,93 +1,66 @@
+import os
+import sys
 import pandas as pd
-import os, sys
 
-ROOT_DIR = os.path.abspath(os.curdir)
-DEFAULT_ORIG_FOLDER_PATH = os.path.join(ROOT_DIR, "original")
-
+from .utils import Utils
+from .patient import Patient
 
 
 class Analyze:
-    original_folder_path: str = DEFAULT_ORIG_FOLDER_PATH
-    patients_files: list[pd.ExcelFile] = []
-    parameters = dict()
     
-    def __init__(self, original_folder_path: str, parameters_file_path: str) -> None:
-        if not os.path.exists(original_folder_path):
-            print(
-                "[WARNING]: Original files folder was not found, one will be created for you in ./original."
-            )
-            os.makedirs(DEFAULT_ORIG_FOLDER_PATH, exist_ok=True)
-
+    # @Returns - values for each month that are out of parameters range
+    @staticmethod
+    def analyze(patient: Patient, parameters: dict):
+        report = PatientReport(patient, parameters)
         
-        if not os.path.exists(parameters_file_path):
-            sys.exit("[ERROR]: Parameters file was not found in path: " + parameters_file_path)
-        
-        if not Analyze.is_file_valid(parameters_file_path):
-            sys.exit("[ERROR]: Parameters file is not an excel file (.xlsx or .xls).")
+        for month, df in patient.data.items():
+            df = df.filter(axis='index', items=parameters.keys())
+            dates = df.columns
+            params = df.index
 
-        self.parameters = Analyze.read_parameters(parameters_file_path)
+            raw_data = df.to_numpy()
 
-        original_dir = Analyze.get_dir(original_folder_path)
-        valid_files = list(filter(Analyze.is_file_valid, original_dir))
-
-        self.original_folder_path = original_folder_path
-
-        for f in valid_files:
-            self.patients_files.append(Analyze.to_excel(f))
-
-
-    def read_patient_data(self, patient_file: pd.ExcelFile, sheet_name: str | None):
-        df = pd.read_excel(patient_file, sheet_name=sheet_name, index_col=0, header=2)
-        df.drop_duplicates(inplace=True)
-        df = df.filter(axis='index', items=self.parameters.keys())
-        df = df.filter(regex='([1-9])+-\w{3}$', axis='columns')
-        return df
-
-    
-    def analyze_patient(self, patient_data: pd.DataFrame, month: str):
-        # for month in f.sheet_names:
-        #     if month not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
-        #             continue
-        #     print("MONTH: " + month)
-        #     patient_data = Analyze.read_patient_data(f, month, self.parameters)
-        dates = patient_data.columns
-        params = patient_data.index
-
-        raw_data = patient_data.to_numpy()
-
-        for p_i, p_row in enumerate(raw_data):
-            for r_i, r in enumerate(p_row):
-                ranges = self.parameters[params[p_i]]
-                read_val = float(r)
-                if read_val < ranges[0] or read_val > ranges[1]:
-                    print(month, dates[r_i], params[p_i], read_val, "OUT OF RANGE", ranges)
-        return []
+            for p_i, p_row in enumerate(raw_data):
+                for r_i, r in enumerate(p_row):
+                    ranges = parameters[params[p_i]]
+                    read_val = float(r)
+                    
+                    if read_val < ranges[0] or read_val > ranges[1]:
+                        report.add_out_of_range(params[p_i], month, dates[r_i], read_val)
+        return report
 
     @staticmethod
-    def read_parameters(parameters_file_path: str): 
+    def to_parameters(parameters_file_path: str): 
         df = pd.read_excel(parameters_file_path)
         full_read = df.to_numpy()
         parameters = {x[0]: [x[1], x[2]] for x in full_read if not pd.isna(x[0]) and not pd.isna(x[1]) and not pd.isna(x[2])}
 
         return parameters
+    
 
-    @staticmethod
-    def get_dir(path: str):
-        return list(os.scandir(path))
-    
-    @staticmethod 
-    def to_excel(file: os.DirEntry):
-        return pd.ExcelFile(file)
-    
-    @staticmethod
-    def is_file_valid(file: os.DirEntry | str):
-        if isinstance(file, os.DirEntry):
-            if str(file.name).find(".xlxs") == -1 and str(file.name).find(".xls") == -1:
-                return False
-            return True
-        if file.find(".xlxs") == -1 and file.find(".xls") == -1:
-            return False
-        return True
+class PatientReport:
+    patient: Patient
+    out_of_ranges: dict = dict()
+
+    def __init__(self, patient: Patient, params: dict) -> None:
+        self.patient = patient
+        for m in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
+            self.out_of_ranges[m] = dict()
+        
+
+    def add_out_of_range(self, param: str, month: str, date: str, value: str):
+        if self.out_of_ranges.get(month) is None:
+            print("MONTH NOT IN KEYS")
+            return
+        if(self.out_of_ranges[month].get(param) is None):
+            self.out_of_ranges[month] = dict()
+            self.out_of_ranges[month][param] = [[date, value]]
+            return
+        self.out_of_ranges[month][param].append([date, value]) 
+
+
+    def save_to_file(path: str):
+        return
     
 
 
