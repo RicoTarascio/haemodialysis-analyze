@@ -56,7 +56,6 @@ class Utils:
                 if m not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
                     continue
                 df = pd.read_excel(file, sheet_name=m, index_col=0, header=2)
-                df.drop_duplicates(inplace=True)
                 df = df.filter(regex='([1-9])+-\w{3}$', axis='columns')
                 data[m] = df
             return data
