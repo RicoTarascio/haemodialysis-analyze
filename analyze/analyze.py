@@ -1,5 +1,6 @@
 import os
 import sys
+from pathlib import Path 
 import pandas as pd
 
 from .utils import Utils
@@ -9,7 +10,7 @@ from .patient import Patient
 class Analyze:
     @staticmethod
     def analyze(patient: Patient, parameters: dict):
-        report = PatientReport(patient, parameters)
+        report = PatientReport(patient)
         
         for month, df in patient.data.items():
             df = df.drop_duplicates()
@@ -25,7 +26,7 @@ class Analyze:
                     read_val = float(r)
                     
                     if read_val < ranges[0] or read_val > ranges[1]:
-                        report.add_out_of_range(params[p_i], month, dates[r_i], read_val)
+                        report.add_out_of_range(params[p_i], dates[r_i], read_val)
         return report
 
     @staticmethod
@@ -41,24 +42,26 @@ class PatientReport:
     patient: Patient
     out_of_ranges: dict = dict()
 
-    def __init__(self, patient: Patient, params: dict) -> None:
+    def __init__(self, patient: Patient) -> None:
         self.patient = patient
-        for m in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
-            self.out_of_ranges[m] = dict()
         
+    def add_out_of_range(self, param: str, date: str, value: float):
 
-    def add_out_of_range(self, param: str, month: str, date: str, value: str):
-        if self.out_of_ranges.get(month) is None:
-            print("MONTH NOT IN KEYS")
+        if self.out_of_ranges.get(date) is None:
+            self.out_of_ranges[date] = dict()
+            self.out_of_ranges[date][param] = value
             return
-        if(self.out_of_ranges[month].get(param) is None):
-            self.out_of_ranges[month] = dict()
-            self.out_of_ranges[month][param] = [[date, value]]
-            return
-        self.out_of_ranges[month][param].append([date, value]) 
+        self.out_of_ranges[date][param] = value
 
 
-    def save_to_file(path: str):
+    #TODO: [x] Save out of range values to CSV 
+    # [] Check if this is ok
+    def save_to_csv(self, path: str | Path):
+        df = pd.DataFrame(self.out_of_ranges)
+        if(not os.path.exists(path)):             
+            path = Path(path)  
+            path.parent.mkdir(parents=True, exist_ok=True)  
+        df.to_csv(path) 
         return
     
 

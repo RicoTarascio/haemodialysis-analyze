@@ -55,6 +55,7 @@ class Utils:
             for m in file.sheet_names:
                 if m not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
                     continue
+                # TODO: optimize this -> convert to CSV b4 opening.
                 df = pd.read_excel(file, sheet_name=m, index_col=0, header=2)
                 df = df.filter(regex='([1-9])+-\w{3}$', axis='columns')
                 data[m] = df

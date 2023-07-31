@@ -4,18 +4,18 @@ from .utils import Utils
 import pandas as pd
 
 class Patient:
-    name: str = ""
+    name: str | None = ""
     month_reads: list = []
     file: pd.ExcelFile
-    data: dict()
+    data: dict
 
-    def __init__(self, file_path: str) -> None:
+    def __init__(self, file_path: str | os.DirEntry[str]) -> None:
         self.set_file(file_path)
             
     
-    def set_file(self, file_path: str):
+    def set_file(self, file_path: str | os.DirEntry[str]):
         if not os.path.exists(file_path):
-            sys.exit("[ERROR]: Patient file was not found in path: " + file_path)
+            sys.exit("[ERROR]: Patient file was not found in path: " + str(file_path))
 
         if not Utils.is_file_valid(file_path):
             sys.exit("[ERROR]: Patient file is not an excel file (.xlsx or .xls).")
