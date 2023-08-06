@@ -12,7 +12,7 @@ ORIGINAL_FOLDER_PATH = os.path.join(ROOT_DIR, "analyze/tests/original")
 PARAMETERS_PATH = os.path.join(ROOT_DIR, "analyze/tests/ranges.xlsx")
 TEST_OUT_FOLDER_PATH = os.path.join(ROOT_DIR, "analyze/tests/out")
 
-def full_test(test_one: bool = False):
+def full_test(test_one: bool = False, test_pattern: str | None = None):
     if not os.path.exists(ORIGINAL_FOLDER_PATH):
         print(
             "[WARNING]: Original files folder was not found, one will be created for you in ./original."
@@ -40,17 +40,19 @@ def full_test(test_one: bool = False):
     reports = []
 
     for f in valid_files:
+        if test_pattern and not f.path.endswith(test_pattern):
+            continue
         p = Patient(f)
         r = Analyze.analyze(p, parameters)
         name = p.name if p.name is not None else ""
         csv_path = Path(TEST_OUT_FOLDER_PATH, "".join(["_".join(name.split(" ")), "_", str(datetime.datetime.today().year), ".csv"]))
         r.save_to_csv(csv_path)
-        if test_one: return r
         reports.append(r) 
+        if test_one: return reports
     return reports
 
 
 
-cProfile.runctx('full_test(True)', None, locals()) # type: ignore
+cProfile.runctx('full_test()', None, locals()) # type: ignore
 
 

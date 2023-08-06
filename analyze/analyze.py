@@ -53,9 +53,6 @@ class PatientReport:
             return
         self.out_of_ranges[date][param] = value
 
-
-    #TODO: [x] Save out of range values to CSV 
-    # [] Check if this is ok
     def save_to_csv(self, path: str | Path):
         df = pd.DataFrame(self.out_of_ranges)
         if(not os.path.exists(path)):             

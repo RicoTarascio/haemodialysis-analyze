@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-
+from xlsx2csv import Xlsx2csv
+from io import StringIO
 
 class Utils:
     @staticmethod
@@ -55,9 +56,17 @@ class Utils:
             for m in file.sheet_names:
                 if m not in ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"]:
                     continue
-                # TODO: optimize this -> convert to CSV b4 opening.
-                df = pd.read_excel(file, sheet_name=m, index_col=0, header=2)
-                df = df.filter(regex='([1-9])+-\w{3}$', axis='columns')
+                
+                df = Utils.read_excel(file, m)
+                df = Utils.filter_df(df, '([1-9])+-\w{3}$', 'columns')
                 data[m] = df
             return data
+    
+    @staticmethod
+    def read_excel(file, sheet_name):
+        return pd.read_excel(file, sheet_name=sheet_name, index_col=0, header=2)
+    
+    @staticmethod
+    def filter_df(df, pattern, axis):
+        return df.filter(regex=pattern, axis=axis)
         
