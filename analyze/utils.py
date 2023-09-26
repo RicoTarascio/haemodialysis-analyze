@@ -24,10 +24,12 @@ class Utils:
         return label
 
     @staticmethod
-    def to_json(excel: pd.ExcelFile, sheet_name: str | int):
+    def to_dict(excel: pd.ExcelFile, sheet_name: str | int):
         df = Utils.read_excel(excel, sheet_name=sheet_name)
         df = Utils.filter_df(df, "([1-9])+-\w{3}$", "columns")
         df.rename(mapper=Utils.rename_df_index, axis="index", inplace=True)
+
+        df.fillna(-1, inplace=True)
 
         dup = df.columns.duplicated()
         month = df.columns[0].split("-")[1]
@@ -38,8 +40,7 @@ class Utils:
         df.drop(columns=duplicate_cols, inplace=True)
         df.rename(mapper=Utils.rename_df_columns, axis="columns", inplace=True)
         df.drop_duplicates(inplace=True)
-        json = df.to_json(orient="columns")
-        return json
+        return df.to_dict()
 
     @staticmethod
     def is_file_valid(file: os.DirEntry | str):

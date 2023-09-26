@@ -4,16 +4,20 @@ from .utils import Utils
 import pandas as pd
 import json
 import datetime
+import pprint
 
 
 class Patient:
     name: str | None = ""
     month_reads: list = []
     file: pd.ExcelFile
-    data: str
+    patient_data: dict
 
     def __init__(self, file_path: str | os.DirEntry[str]) -> None:
         self.set_file(file_path)
+
+    def to_json(self):
+        return json.dumps(self.patient_data)
 
     def set_file(self, file_path: str | os.DirEntry[str]):
         if not os.path.exists(file_path):
@@ -51,13 +55,10 @@ class Patient:
             "patient": self.name,
             "file": str(file_path),
             "acquisition_date": datetime.datetime.today().isoformat(),
-            "data": {},
+            "reads": {},
         }
 
         for sheet_name in self.month_reads:
-            patient_data["data"][sheet_name] = json.loads(
-                Utils.to_json(self.file, sheet_name)
-            )
+            patient_data["reads"][sheet_name] = Utils.to_dict(self.file, sheet_name)
 
-        self.data = json.dumps(patient_data)
-        print(self.data)
+        self.patient_data = patient_data

@@ -6,6 +6,7 @@ from ..patient import Patient
 import os
 import cProfile
 from pathlib import Path
+import pprint
 
 ROOT_DIR = os.path.abspath(os.curdir)
 ORIGINAL_FOLDER_PATH = os.path.join(ROOT_DIR, "analyze/tests/original")
@@ -70,5 +71,25 @@ def new_test():
 
     p = Patient(valid_files[0])
 
+    parameters = Analyze.to_parameters(PARAMETERS_PATH)
+    r = Analyze.analyze(p, parameters)
+    name = p.name if p.name is not None else ""
+    csv_path = Path(
+        TEST_OUT_FOLDER_PATH,
+        "".join(
+            [
+                "_".join(name.split(" ")),
+                "_",
+                str(datetime.datetime.today().year),
+                ".csv,",
+            ]
+        ),
+    )
 
-cProfile.runctx("new_test()", None, locals())  # type: ignore
+    print(p.to_json())
+    r.save_to_csv(csv_path)
+
+
+# cProfile.runctx("new_test()", None, locals())  # type: ignore
+
+new_test()
