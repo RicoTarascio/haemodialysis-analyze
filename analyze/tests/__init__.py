@@ -2,7 +2,6 @@ import datetime
 import sys
 from ..analyze import Analyze
 from ..utils import Utils
-from ..patient import Patient
 import os
 import cProfile
 from pathlib import Path
@@ -37,59 +36,57 @@ def test_files():
     return valid_files
 
 
-def full_test(test_one: bool = False, test_pattern: str | None = None):
-    parameters = Analyze.to_parameters(PARAMETERS_PATH)
-    valid_files = test_files()
-    reports = []
+# def full_test(test_one: bool = False, test_pattern: str | None = None):
+#     parameters = Analyze.to_parameters(PARAMETERS_PATH)
+#     valid_files = test_files()
+#     reports = []
 
-    for f in valid_files:
-        if test_pattern and not f.path.endswith(test_pattern):
-            continue
-        p = Patient(f)
-        r = Analyze.analyze(p, parameters)
-        name = p.name if p.name is not None else ""
-        csv_path = Path(
-            TEST_OUT_FOLDER_PATH,
-            "".join(
-                [
-                    "_".join(name.split(" ")),
-                    "_",
-                    str(datetime.datetime.today().year),
-                    ".csv",
-                ]
-            ),
-        )
-        r.save_to_csv(csv_path)
-        reports.append(r)
-        if test_one:
-            return reports
-    return reports
+#     for f in valid_files:
+#         if test_pattern and not f.path.endswith(test_pattern):
+#             continue
+#         p = Patient(f)
+#         r = Analyze.analyze(p, parameters)
+#         name = p.name if p.name is not None else ""
+#         csv_path = Path(
+#             TEST_OUT_FOLDER_PATH,
+#             "".join(
+#                 [
+#                     "_".join(name.split(" ")),
+#                     "_",
+#                     str(datetime.datetime.today().year),
+#                     ".csv",
+#                 ]
+#             ),
+#         )
+#         r.save_to_csv(csv_path)
+#         reports.append(r)
+#         if test_one:
+#             return reports
+#     return reports
 
 
-def new_test():
-    valid_files = test_files()
+# def new_test():
+#     valid_files = test_files()
 
-    p = Patient(valid_files[0])
+#     p = Patient(valid_files[0])
 
-    parameters = Analyze.to_parameters(PARAMETERS_PATH)
-    r = Analyze.analyze(p, parameters)
-    name = p.name if p.name is not None else ""
-    csv_path = Path(
-        TEST_OUT_FOLDER_PATH,
-        "".join(
-            [
-                "_".join(name.split(" ")),
-                "_",
-                str(datetime.datetime.today().year),
-                ".csv,",
-            ]
-        ),
-    )
+#     parameters = Analyze.to_parameters(PARAMETERS_PATH)
+#     r = Analyze.analyze(p, parameters)
+#     name = p.name if p.name is not None else ""
+#     csv_path = Path(
+#         TEST_OUT_FOLDER_PATH,
+#         "".join(
+#             [
+#                 "_".join(name.split(" ")),
+#                 "_",
+#                 str(datetime.datetime.today().year),
+#                 ".csv,",
+#             ]
+#         ),
+#     )
 
-    print(p.to_json())
-    r.save_to_csv(csv_path)
+#     print(p.to_json())
+#     r.save_to_csv(csv_path)
 
 
 # cProfile.runctx("new_test()", None, locals())  # type: ignore
-
-new_test()

@@ -1,21 +1,82 @@
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Collection, List
+from typing import List
 import pandas as pd
 
 from .utils import Utils
-from .patient import Patient
 import pprint
+import datetime
+import json
+
+
+class InvalidPatientFileException(Exception):
+    def __init__(self, file_path, type):
+        self.file = file_path
+        self.type = type
+        if type == "NOT_FOUND":
+            super().__init__(
+                "[ERROR]: Patient file was not found in path: " + str(file_path)
+            )
+        elif type == "INVALID_TYPE":
+            super().__init__(
+                "[ERROR]: Patient file is not an excel file (.xlsx or .xls)."
+            )
+        else:
+            super().__init__("[ERROR]: Invalid patient file.")
 
 
 class Analyze:
     @staticmethod
-    def analyze(patient: Patient, parameters: dict):
-        report = PatientReport(patient)
+    def analyze(patient_file_path: str | os.DirEntry[str], parameters: dict):
+        if not os.path.exists(patient_file_path):
+            raise InvalidPatientFileException(patient_file_path, "NOT_FOUND")
+        if not Utils.is_file_valid(patient_file_path):
+            raise InvalidPatientFileException(patient_file_path, "INVALID_TYPE")
 
-        patient_reads = patient.patient_data["reads"]
+        errors = []
 
+        file = pd.ExcelFile(patient_file_path)
+
+        patient_name = Utils.find_patient_name(file)
+        months = [month for month in file.sheet_names if month in Utils.MONTHS]
+        # TODO: Data di nascita
+
+        patient_reads = Utils.patient_reads(file, months)
+        out_of_range = Analyze.get_out_of_range(patient_reads, parameters)
+
+        if patient_name is None:
+            pprint.pprint("NAME IS MISSING")
+            errors.append("NAME")
+
+        if len(months) != 12:
+            pprint.pprint(str(len(months) - 12) + " MONTHS ARE MISSING")
+            errors.append("MONTHS")
+
+        if len(out_of_range) > 0:
+            pprint.pprint("SOME READS ARE OUT OF RANGE")
+            errors.append("OUT_OF_RANGE")
+
+        if len(errors) > 0:
+            pprint.pprint("THERE ARE ERRORS")
+            # TODO: report_errors(path) -> creates and stores CSV with patient errors
+            return
+
+        # TODO: At this point it should save CV with patient info
+
+        patient_data = {
+            "name": patient_name,
+            "file": str(patient_file_path),
+            "birth": "",
+            "acquisition_date": datetime.datetime.today().isoformat(),
+            "reads": patient_reads,
+        }
+
+        return patient_data
+
+    @staticmethod
+    def get_out_of_range(patient_reads: dict, parameters: dict):
+        out_of_range: List[List] = []
         for month, dates in patient_reads.items():
             for day, values in dates.items():
                 for param, ranges in parameters.items():
@@ -25,16 +86,24 @@ class Analyze:
                         continue
                     read_val = float(read)
                     if read_val < ranges[0] or read_val > ranges[1]:
-                        report.add_out_of_range(
-                            param_name=param,
-                            param_min=ranges[0],
-                            param_max=ranges[1],
-                            day=day,
-                            month=month,
-                            value=read_val,
+                        out_of_range.append(
+                            [month, day, param, ranges[0], ranges[1], read_val]
                         )
+        return out_of_range
 
-        return report
+    @staticmethod
+    def out_of_range_to_cv(out_of_range: List[List], path: str | Path):
+        df = pd.DataFrame(
+            out_of_range,
+            columns=["Mese", "Giorno", "Parametro", "Minimo", "Massimo", "Valore"],
+        )
+
+        if not os.path.exists(path):
+            path = Path(path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+        df.to_csv(path, index_label=None, index=False)
+        return
 
     @staticmethod
     def to_parameters(parameters_file_path: str):
@@ -48,32 +117,6 @@ class Analyze:
 
         return parameters
 
-
-class PatientReport:
-    patient: Patient
-    out_of_ranges: List[List] = []
-
-    def __init__(self, patient: Patient) -> None:
-        self.patient = patient
-
-    def add_out_of_range(
-        self,
-        param_name: str,
-        param_min: float,
-        param_max: float,
-        month: str,
-        day: str,
-        value: float,
-    ):
-        self.out_of_ranges.append([month, day, param_name, param_min, param_max, value])
-
-    def save_to_csv(self, path: str | Path):
-        df = pd.DataFrame(
-            self.out_of_ranges,
-            columns=["Mese", "Giorno", "Parametro", "Minimo", "Massimo", "Valore"],
-        )
-        if not os.path.exists(path):
-            path = Path(path)
-            path.parent.mkdir(parents=True, exist_ok=True)
-        df.to_csv(path, index_label=None, index=False)
-        return
+    @staticmethod
+    def patient_data_to_json(patient_data: dict):
+        return json.dumps(patient_data)

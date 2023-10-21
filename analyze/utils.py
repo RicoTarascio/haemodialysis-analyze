@@ -1,10 +1,23 @@
 import os
 import pandas as pd
-from xlsx2csv import Xlsx2csv
-from io import StringIO
 
 
 class Utils:
+    MONTHS = [
+        "Gennaio",
+        "Febbraio",
+        "Marzo",
+        "Aprile",
+        "Maggio",
+        "Giugno",
+        "Luglio",
+        "Agosto",
+        "Settembre",
+        "Ottobre",
+        "Novembre",
+        "Dicembre",
+    ]
+
     @staticmethod
     def get_dir(path: str):
         return list(os.scandir(path))
@@ -114,3 +127,14 @@ class Utils:
     @staticmethod
     def filter_df(df: pd.DataFrame, pattern, axis) -> pd.DataFrame:
         return df.filter(regex=pattern, axis=axis)
+
+    @staticmethod
+    def missing_months(months):
+        return [month for month in Utils.MONTHS if month not in months]
+
+    @staticmethod
+    def patient_reads(patient_excel: pd.ExcelFile, months):
+        reads = {}
+        for sheet_name in months:
+            reads[sheet_name] = Utils.to_dict(patient_excel, sheet_name)
+        return reads
