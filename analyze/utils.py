@@ -3,6 +3,11 @@ import pandas as pd
 
 
 class Utils:
+    ROOT_DIR = os.path.abspath(os.curdir)
+    ORIGINAL_FOLDER_PATH = os.path.join(ROOT_DIR, "analyze/tests/original/")
+    PARAMETERS_PATH = os.path.join(ROOT_DIR, "analyze/tests/ranges.xlsx")
+    TEST_OUT_FOLDER_PATH = os.path.join(ROOT_DIR, "analyze/tests/out/")
+
     MONTHS = [
         "Gennaio",
         "Febbraio",
@@ -45,6 +50,7 @@ class Utils:
         df.fillna(-1, inplace=True)
 
         dup = df.columns.duplicated()
+        print(df.columns)
         month = df.columns[0].split("-")[1]
         for i, col in enumerate(df.columns):
             if col.split("-")[1] != month:
@@ -115,7 +121,10 @@ class Utils:
 
             df = Utils.read_excel(file, m)
             df = Utils.filter_df(df, "([1-9])+-\w{3}$", "columns")
-            data[m] = df
+            df.drop_duplicates(inplace=True)
+            reads_dict = df.to_dict()
+
+            data[m] = reads_dict
         return data
 
     @staticmethod

@@ -1,92 +1,55 @@
-import datetime
 import sys
 from ..analyze import Analyze
 from ..utils import Utils
 import os
 import cProfile
-from pathlib import Path
 import pprint
-
-ROOT_DIR = os.path.abspath(os.curdir)
-ORIGINAL_FOLDER_PATH = os.path.join(ROOT_DIR, "analyze/tests/original")
-PARAMETERS_PATH = os.path.join(ROOT_DIR, "analyze/tests/ranges.xlsx")
-TEST_OUT_FOLDER_PATH = os.path.join(ROOT_DIR, "analyze/tests/out")
+from ..utils import Utils
 
 
 def test_files():
-    if not os.path.exists(ORIGINAL_FOLDER_PATH):
+    if not os.path.exists(Utils.ORIGINAL_FOLDER_PATH):
         print(
             "[WARNING]: Original files folder was not found, one will be created for you in ./original."
         )
-        os.makedirs(ORIGINAL_FOLDER_PATH, exist_ok=True)
+        os.makedirs(Utils.ORIGINAL_FOLDER_PATH, exist_ok=True)
 
-    if not os.path.exists(TEST_OUT_FOLDER_PATH):
+    if not os.path.exists(Utils.TEST_OUT_FOLDER_PATH):
         print("[WARNING]: Tests out folder was not found, one will be created for you.")
-        os.makedirs(TEST_OUT_FOLDER_PATH, exist_ok=True)
+        os.makedirs(Utils.TEST_OUT_FOLDER_PATH, exist_ok=True)
 
-    if not os.path.exists(PARAMETERS_PATH):
-        sys.exit("[ERROR]: Parameters file was not found in path: " + PARAMETERS_PATH)
+    if not os.path.exists(Utils.PARAMETERS_PATH):
+        sys.exit(
+            "[ERROR]: Parameters file was not found in path: " + Utils.PARAMETERS_PATH
+        )
 
-    if not Utils.is_file_valid(PARAMETERS_PATH):
+    if not Utils.is_file_valid(Utils.PARAMETERS_PATH):
         sys.exit("[ERROR]: Parameters file is not an excel file (.xlsx or .xls).")
 
-    original_dir = Utils.get_dir(ORIGINAL_FOLDER_PATH)
+    original_dir = Utils.get_dir(Utils.ORIGINAL_FOLDER_PATH)
     valid_files = list(filter(Utils.is_file_valid, original_dir))
 
     return valid_files
 
 
-# def full_test(test_one: bool = False, test_pattern: str | None = None):
-#     parameters = Analyze.to_parameters(PARAMETERS_PATH)
-#     valid_files = test_files()
-#     reports = []
+def full_test(test_one: bool = False, test_pattern: str | None = None):
+    parameters = Analyze.to_parameters(Utils.PARAMETERS_PATH)
+    valid_files = test_files()
 
-#     for f in valid_files:
-#         if test_pattern and not f.path.endswith(test_pattern):
-#             continue
-#         p = Patient(f)
-#         r = Analyze.analyze(p, parameters)
-#         name = p.name if p.name is not None else ""
-#         csv_path = Path(
-#             TEST_OUT_FOLDER_PATH,
-#             "".join(
-#                 [
-#                     "_".join(name.split(" ")),
-#                     "_",
-#                     str(datetime.datetime.today().year),
-#                     ".csv",
-#                 ]
-#             ),
-#         )
-#         r.save_to_csv(csv_path)
-#         reports.append(r)
-#         if test_one:
-#             return reports
-#     return reports
+    for f in valid_files:
+        if test_pattern and not f.path.endswith(test_pattern):
+            continue
+        pprint.pprint("Analyzing: " + f.path)
+        patient_data = Analyze.analyze(f.path, parameters)
+        pprint.pprint("OK")
+        pprint.pprint("==================================")
+        if patient_data is not None:
+            pprint.pprint(patient_data)
+
+        if test_one:
+            return
 
 
-# def new_test():
-#     valid_files = test_files()
+# cProfile.runctx("full_test()", None, locals())  # type: ignore
 
-#     p = Patient(valid_files[0])
-
-#     parameters = Analyze.to_parameters(PARAMETERS_PATH)
-#     r = Analyze.analyze(p, parameters)
-#     name = p.name if p.name is not None else ""
-#     csv_path = Path(
-#         TEST_OUT_FOLDER_PATH,
-#         "".join(
-#             [
-#                 "_".join(name.split(" ")),
-#                 "_",
-#                 str(datetime.datetime.today().year),
-#                 ".csv,",
-#             ]
-#         ),
-#     )
-
-#     print(p.to_json())
-#     r.save_to_csv(csv_path)
-
-
-# cProfile.runctx("new_test()", None, locals())  # type: ignore
+full_test()

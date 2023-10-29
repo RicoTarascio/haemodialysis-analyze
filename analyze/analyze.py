@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 from pathlib import Path
 from typing import List
@@ -28,13 +29,14 @@ class InvalidPatientFileException(Exception):
 
 class Analyze:
     @staticmethod
-    def analyze(patient_file_path: str | os.DirEntry[str], parameters: dict):
+    def analyze(patient_file_path: str | Path, parameters: dict):
         if not os.path.exists(patient_file_path):
             raise InvalidPatientFileException(patient_file_path, "NOT_FOUND")
-        if not Utils.is_file_valid(patient_file_path):
+        if not Utils.is_file_valid(str(patient_file_path)):
             raise InvalidPatientFileException(patient_file_path, "INVALID_TYPE")
 
-        errors = []
+        errors = {}
+        out_path = Utils.TEST_OUT_FOLDER_PATH
 
         file = pd.ExcelFile(patient_file_path)
 
@@ -42,27 +44,50 @@ class Analyze:
         months = [month for month in file.sheet_names if month in Utils.MONTHS]
         # TODO: Data di nascita
 
-        patient_reads = Utils.patient_reads(file, months)
+        patient_reads = Utils.get_patient_data(file)
         out_of_range = Analyze.get_out_of_range(patient_reads, parameters)
 
         if patient_name is None:
-            pprint.pprint("NAME IS MISSING")
-            errors.append("NAME")
+            # pprint.pprint("NAME IS MISSING")
+            errors["NAME"] = True
 
         if len(months) != 12:
-            pprint.pprint(str(len(months) - 12) + " MONTHS ARE MISSING")
-            errors.append("MONTHS")
+            # pprint.pprint(str(12 - len(months)) + " MONTHS ARE MISSING")
+            errors["MONTHS"] = Utils.missing_months(months)
+
+        rand = str(random.randint(100, 500))
 
         if len(out_of_range) > 0:
-            pprint.pprint("SOME READS ARE OUT OF RANGE")
-            errors.append("OUT_OF_RANGE")
+            # pprint.pprint("SOME READS ARE OUT OF RANGE")
+
+            if patient_name is None:
+                Analyze.out_of_range_to_cv(
+                    out_of_range, out_path + "no_name_out_of_range_" + rand + ".csv"
+                )
+            else:
+                Analyze.out_of_range_to_cv(
+                    out_of_range,
+                    out_path + "_".join(patient_name.split(" ")) + "_out_of_range.csv",
+                )
 
         if len(errors) > 0:
-            pprint.pprint("THERE ARE ERRORS")
-            # TODO: report_errors(path) -> creates and stores CSV with patient errors
-            return
+            # pprint.pprint("THERE ARE ERRORS")
 
-        # TODO: At this point it should save CV with patient info
+            if patient_name is None:
+                Analyze.report_errors(
+                    errors=errors,
+                    output_file_path=out_path + "no_name_errors_" + rand + ".csv",
+                    patient_file_path=patient_file_path,
+                )
+            else:
+                Analyze.report_errors(
+                    errors=errors,
+                    output_file_path=out_path
+                    + "_".join(patient_name.split(" "))
+                    + "_errors.csv",
+                    patient_file_path=patient_file_path,
+                )
+            return None
 
         patient_data = {
             "name": patient_name,
@@ -85,7 +110,9 @@ class Analyze:
                         # Parameter value was not found
                         continue
                     read_val = float(read)
-                    if read_val < ranges[0] or read_val > ranges[1]:
+                    if (
+                        read_val < ranges[0] or read_val > ranges[1]
+                    ) and read_val != -1.0:
                         out_of_range.append(
                             [month, day, param, ranges[0], ranges[1], read_val]
                         )
@@ -106,7 +133,7 @@ class Analyze:
         return
 
     @staticmethod
-    def to_parameters(parameters_file_path: str):
+    def to_parameters(parameters_file_path: str | Path):
         df = pd.read_excel(parameters_file_path)
         full_read = df.to_numpy()
         parameters = {
@@ -120,3 +147,33 @@ class Analyze:
     @staticmethod
     def patient_data_to_json(patient_data: dict):
         return json.dumps(patient_data)
+
+    @staticmethod
+    def report_errors(
+        errors: dict, patient_file_path: str | Path, output_file_path: str | Path
+    ):
+        df_errors: list[list] = []
+
+        if "NAME" in errors.keys():
+            df_errors.append(["The name of the patient was not found in the document."])
+
+        if "MONTHS" in errors.keys():
+            df_errors.append(
+                ["There are some months missing: " + ", ".join(errors["MONTHS"])]
+            )
+
+        df = pd.DataFrame(
+            df_errors,
+            columns=[
+                "Detected some errors while parsing file "
+                + str(patient_file_path)
+                + " please resolve them and run again."
+            ],
+        )
+
+        if not os.path.exists(output_file_path):
+            path = Path(output_file_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+
+        df.to_csv(output_file_path, index_label=None, index=False)
+        return
