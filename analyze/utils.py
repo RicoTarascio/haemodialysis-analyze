@@ -122,7 +122,17 @@ class Utils:
             df = Utils.read_excel(file, m)
             df = Utils.filter_df(df, "([1-9])+-\w{3}$", "columns")
             df.drop_duplicates(inplace=True)
+            df.dropna(inplace=True, how="all")
             reads_dict = df.to_dict()
+
+            key_months = [str(k).split("-")[1] for k in reads_dict.keys()]
+            to_pop = []
+            for k in reads_dict.keys():
+                if key_months.count(str(k).split("-")[1]) < 2:
+                    # This key should not be in the dict
+                    to_pop.append(k)
+            for k in to_pop:
+                reads_dict.pop(k)
 
             data[m] = reads_dict
         return data
